@@ -5,7 +5,8 @@
     'hostTab', 'watchTab', 'hostPanel', 'watchPanel', 'startShare', 'audioToggle',
     'pauseShare', 'continueShare', 'stopShare', 'copyCode', 'copyLink', 'joinForm',
     'joinCode', 'hostVideo', 'viewerVideo', 'hostStatus', 'viewerStatus', 'shareCode',
-    'shareLink', 'toast', 'viewerPlay', 'hostAudioStatus', 'hostPlaceholder', 'viewerPlaceholder'
+    'shareLink', 'toast', 'viewerPlay', 'hostAudioStatus', 'hostPlaceholder', 'viewerPlaceholder',
+    'homeTab', 'homePanel'
   ].map((id) => [id, $(id)]));
 
   let hostPeer = null;
@@ -30,12 +31,17 @@
 
   function selectTab(name) {
     const hosting = name === 'host';
+    const watching = name === 'watch';
+    const home = name === 'home';
+    ui.homeTab.classList.toggle('active', home);
     ui.hostTab.classList.toggle('active', hosting);
-    ui.watchTab.classList.toggle('active', !hosting);
+    ui.watchTab.classList.toggle('active', watching);
+    ui.homeTab.setAttribute('aria-selected', String(home));
     ui.hostTab.setAttribute('aria-selected', String(hosting));
-    ui.watchTab.setAttribute('aria-selected', String(!hosting));
+    ui.watchTab.setAttribute('aria-selected', String(watching));
+    ui.homePanel.hidden = !home;
     ui.hostPanel.hidden = !hosting;
-    ui.watchPanel.hidden = hosting;
+    ui.watchPanel.hidden = !watching;
   }
 
   function setHostState(state) {
@@ -44,7 +50,7 @@
     ui.audioToggle.disabled = live || state === 'starting';
     ui.pauseShare.disabled = state !== 'live';
     ui.continueShare.disabled = state !== 'paused';
-    ui.stopShare.disabled = !live;
+    ui.stopShare.disabled = !live && state !== 'starting';
     ui.copyCode.disabled = !live;
     ui.copyLink.disabled = !live;
     ui.hostStatus.textContent = ({ idle: 'Ready to share', starting: 'Connecting', live: 'Streaming', paused: 'Paused' })[state];
@@ -106,6 +112,85 @@
     if (reason) message(reason);
   }
 
+  function hostErrorMessage(error) {
+    const type = error && error.type;
+    const explanations = {
+      'browser-incompatible': 'This browser does not support the connection. Try Chrome or Edge.',
+      'network': 'Cannot reach the sharing service. Check your internet connection or try another network.',
+      'server-error': 'The sharing service is unavailable. Please try again later.',
+      'socket-error': 'The sharing service connection was blocked. Try another network or disable a blocking extension.',
+      'socket-closed': 'The sharing service closed the connection. Please try again.',
+      'unavailable-id': 'Could not reserve a share code. Please try again.',
+      'invalid-key': 'The sharing service rejected its connection key.',
+      'ssl-unavailable': 'A secure connection to the sharing service is unavailable.'
+    };
+    return (explanations[type] || 'Could not connect to the sharing service. Please try again.') + (type ? ` (${type})` : '');
+  }
+
+  function connectHost(attempt = 1) {
+    if (!hostStream) return;
+    const code = generateCode();
+    const link = new URL(window.location.href);
+    link.search = '';
+    link.hash = '';
+    link.searchParams.set('join', code);
+    const peer = new Peer(peerId(code));
+    const hasAudio = hostStream.getAudioTracks().length > 0;
+    let opened = false;
+    let handled = false;
+    hostPeer = peer;
+
+    function connectionFailed(error) {
+      if (hostPeer !== peer || handled) return;
+      handled = true;
+      clearTimeout(hostTimer);
+      const retryable = !opened && (!error || ['network', 'server-error', 'socket-error', 'socket-closed', 'unavailable-id'].includes(error.type));
+      if (retryable && attempt < 3 && hostStream) {
+        hostPeer = null;
+        peer.destroy();
+        ui.hostStatus.textContent = `Connecting · retry ${attempt + 1}/3`;
+        hostTimer = setTimeout(() => {
+          if (hostStream && !hostPeer) connectHost(attempt + 1);
+        }, attempt * 1000);
+        return;
+      }
+      const reason = hostErrorMessage(error);
+      stopHosting(reason);
+      ui.hostStatus.textContent = reason;
+      ui.hostStatus.dataset.state = 'error';
+    }
+
+    hostTimer = setTimeout(() => connectionFailed({ type: 'network' }), 15000);
+    peer.on('open', () => {
+      if (hostPeer !== peer) return;
+      opened = true;
+      clearTimeout(hostTimer);
+      ui.shareCode.textContent = code;
+      ui.shareLink.textContent = link.toString();
+      setHostState('live');
+    });
+    peer.on('connection', (conn) => {
+      conn.on('open', () => {
+        if (hostPeer !== peer || !hostStream) { conn.close(); return; }
+        viewers.add(conn);
+        conn.send({ type: 'state', paused, hasAudio });
+        const call = peer.call(conn.peer, hostStream);
+        if (call) call.on('error', () => conn.close());
+      });
+      conn.on('close', () => viewers.delete(conn));
+      conn.on('error', () => viewers.delete(conn));
+    });
+    peer.on('error', (error) => {
+      console.error('Host connection error:', error.type, error.message);
+      if (opened && ['peer-unavailable', 'webrtc'].includes(error.type)) {
+        message('A viewer could not connect. They can try joining again.');
+        return;
+      }
+      connectionFailed(error);
+    });
+    peer.on('disconnected', () => connectionFailed({ type: 'network' }));
+  }
+
   async function startHosting() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
       message('Screen sharing requires a supported browser on HTTPS or localhost.');
@@ -127,42 +212,7 @@
       ui.hostVideo.play().catch(() => {});
       const hasAudio = stream.getAudioTracks().length > 0;
       ui.hostAudioStatus.textContent = hasAudio ? 'Audio is being shared.' : (ui.audioToggle.checked ? 'No audio was supplied by your browser or selected source.' : 'Sharing without audio.');
-      const code = generateCode();
-      const link = new URL(window.location.href);
-      link.search = '';
-      link.hash = '';
-      link.searchParams.set('join', code);
-      const peer = new Peer(peerId(code));
-      hostPeer = peer;
-      hostTimer = setTimeout(() => {
-        if (hostPeer === peer) stopHosting('Could not connect to the sharing service. Please try again.');
-      }, 20000);
-      peer.on('open', () => {
-        if (hostPeer !== peer) return;
-        clearTimeout(hostTimer);
-        ui.shareCode.textContent = code;
-        ui.shareLink.textContent = link.toString();
-        setHostState('live');
-      });
-      peer.on('connection', (conn) => {
-        conn.on('open', () => {
-          if (hostPeer !== peer || !hostStream) { conn.close(); return; }
-          viewers.add(conn);
-          conn.send({ type: 'state', paused, hasAudio });
-          const call = peer.call(conn.peer, hostStream);
-          if (call) call.on('error', () => conn.close());
-        });
-        conn.on('close', () => viewers.delete(conn));
-        conn.on('error', () => viewers.delete(conn));
-      });
-      peer.on('error', (error) => {
-        if (hostPeer !== peer) return;
-        stopHosting('Connection failed. Please try sharing again.');
-        console.error('Host connection error:', error.type);
-      });
-      peer.on('disconnected', () => {
-        if (hostPeer === peer) stopHosting('Connection to the sharing service was lost.');
-      });
+      connectHost();
     } catch (error) {
       if (hostStream) stopHosting('Could not start sharing. Please try again.');
       else {
@@ -282,6 +332,8 @@
     }
   }
 
+  ui.homeTab.addEventListener('click', () => selectTab('home'));
+  $('homeLogo').addEventListener('click', () => selectTab('home'));
   ui.hostTab.addEventListener('click', () => selectTab('host'));
   ui.watchTab.addEventListener('click', () => selectTab('watch'));
   ui.startShare.addEventListener('click', startHosting);
@@ -297,5 +349,17 @@
   });
   const incoming = new URLSearchParams(window.location.search).get('join');
   if (incoming) { ui.joinCode.value = incoming; selectTab('watch'); }
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  window.addEventListener('pointermove', (event) => {
+    if (reducedMotion.matches || event.pointerType === 'touch') return;
+    const x = (event.clientX / window.innerWidth - 0.5) * 30;
+    const y = (event.clientY / window.innerHeight - 0.5) * 30;
+    document.documentElement.style.setProperty('--pointer-x', `${x.toFixed(1)}px`);
+    document.documentElement.style.setProperty('--pointer-y', `${y.toFixed(1)}px`);
+  }, { passive: true });
+  window.addEventListener('pointerleave', () => {
+    document.documentElement.style.setProperty('--pointer-x', '0px');
+    document.documentElement.style.setProperty('--pointer-y', '0px');
+  });
   setHostState('idle');
 })();

@@ -3,76 +3,70 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#090909">
+  <meta name="theme-color" content="#6900ff">
   <meta name="description" content="Share a window, application, or screen with a simple code.">
-  <title>UNISHARE — A window between us.</title>
+  <title>UNISHARE — Your screen, their window.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <script defer src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
   <script defer src="app.js"></script>
 </head>
 <body>
-  <div class="site-shell">
-    <header class="site-header">
-      <a class="brand" href="./" aria-label="Unishare home"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span>UNI<span class="brand-light">SHARE</span><small> / SCREEN SHARING</small></span></a>
-      <div class="header-right"><span class="header-dot"></span> PEER TO PEER <span class="header-separator">/</span> <span class="header-index">EST. 2026</span></div>
+  <div class="site-shell" id="siteShell">
+    <div class="scene" aria-hidden="true">
+      <svg class="waves" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="2.3" cy="2.3" r="1.35" fill="white"/></pattern>
+          <linearGradient id="fade" x1="0" y1="0" x2="0.8" y2="1"><stop stop-color="white" stop-opacity=".7"/><stop offset=".62" stop-color="white" stop-opacity=".8"/><stop offset="1" stop-color="white" stop-opacity=".1"/></linearGradient>
+          <mask id="dots-mask"><rect width="1440" height="900" fill="url(#fade)"/></mask>
+        </defs>
+        <g class="wave-motion" fill="url(#dots)" mask="url(#dots-mask)">
+          <path d="M-240 210 C-90 224 81 311 203 447 C326 585 384 754 358 1000 L206 1000 C249 771 221 618 118 484 C18 355 -106 286 -240 270Z" opacity=".7"/>
+          <path d="M180 -170 C395 -72 557 65 654 239 C755 420 776 642 749 1000 L595 1000 C644 690 635 460 557 287 C477 110 347 -20 156 -113Z" opacity=".78"/>
+          <path d="M558 -170 C716 -39 822 102 889 264 C961 440 967 658 944 1000 L827 1000 C850 665 833 461 771 292 C709 123 623 -3 513 -119Z" opacity=".61"/>
+          <path d="M940 -155 C1055 -10 1128 143 1169 318 C1212 507 1220 716 1199 1000 L1101 1000 C1123 725 1108 512 1066 334 C1025 158 962 12 899 -111Z" opacity=".5"/>
+          <path d="M1220 -170 C1315 -36 1374 112 1403 278 C1434 461 1432 667 1411 1000 L1325 1000 C1348 666 1342 471 1311 302 C1280 137 1235 -4 1176 -127Z" opacity=".32"/>
+        </g>
+      </svg>
+    </div>
+    <header class="header">
+      <nav class="nav" aria-label="Main navigation">
+        <button class="nav-logo" id="homeLogo" type="button" aria-label="UniShare home">UNISHARE</button>
+        <div class="nav-links" role="tablist" aria-label="Choose a page">
+          <button class="nav-link active" id="homeTab" type="button" role="tab" aria-selected="true" aria-controls="homePanel">Home</button>
+          <button class="nav-link" id="hostTab" type="button" role="tab" aria-selected="false" aria-controls="hostPanel">Share</button>
+          <button class="nav-link" id="watchTab" type="button" role="tab" aria-selected="false" aria-controls="watchPanel">Join</button>
+        </div>
+      </nav>
     </header>
 
     <main>
-      <section class="intro" aria-labelledby="page-title">
-        <div class="intro-copy">
-          <div class="eyebrow"><span class="eyebrow-square"></span> A LITTLE CLOSER, FROM ANYWHERE <span class="eyebrow-line"></span> 01 / 02</div>
-          <h1 id="page-title">YOUR SCREEN.<br><span>THEIR WINDOW.</span></h1>
-          <p>Share what matters, without the clutter. Pick a window, send a code, and let them see what you see.</p>
-        </div>
-        <div class="intro-aside" aria-hidden="true"><div class="asterisk">✳</div><span>ONE WINDOW.<br>EVERYONE IN SYNC.</span></div>
+      <section id="homePanel" class="home-panel" role="tabpanel" aria-labelledby="homeTab">
+        <div class="hero-copy"><h1>UNISHARE</h1><p>Your screen, their window.</p></div>
       </section>
 
-      <section class="workspace" aria-label="Screen sharing workspace">
-        <div class="workspace-top">
-          <div class="tab-list" role="tablist" aria-label="Choose what to do">
-            <button class="tab active" type="button" id="hostTab" role="tab" aria-selected="true" aria-controls="hostPanel"><span>01</span> START A SHARE <b>↗</b></button>
-            <button class="tab" type="button" id="watchTab" role="tab" aria-selected="false" aria-controls="watchPanel"><span>02</span> JOIN A SHARE <b>↗</b></button>
-          </div>
-          <span class="workspace-label">THE SHARING SPACE <span>✳</span></span>
-        </div>
-
-        <div id="hostPanel" class="panel" role="tabpanel" aria-labelledby="hostTab">
-          <div class="panel-heading"><div><span class="section-number">[ 01 / BROADCAST ]</span><h2>Make room for<br>your screen<span class="period">.</span></h2></div><p>One link is all it takes.<br>You're always in control.</p></div>
-          <div class="host-layout">
-            <div class="preview-column">
-              <div class="preview-label"><span>YOUR PREVIEW</span><span><i class="status-dot"></i> <span id="hostStatus" role="status">READY TO SHARE</span></span></div>
-              <div class="video-frame host-frame">
-                <video id="hostVideo" hidden autoplay muted playsinline aria-label="Your screen share preview"></video>
-                <div class="empty-preview" id="hostPlaceholder" aria-hidden="true"><div class="screen-icon"><span></span><i></i></div><strong>YOUR SCREEN GOES HERE</strong><small>Pick what you want to share to get started.</small></div>
-                <span class="frame-corner top-left"></span><span class="frame-corner top-right"></span><span class="frame-corner bottom-left"></span><span class="frame-corner bottom-right"></span>
-                <span class="preview-index">UNISHARE / 001</span>
-              </div>
-              <div class="preview-foot"><span>● &nbsp; YOU CONTROL WHAT IS SHARED</span><span>WINDOW / TAB / SCREEN</span></div>
-            </div>
-            <div class="controls-column">
-              <div class="control-step"><div class="step-heading"><span>01</span><h3>SET YOUR PREFERENCES</h3></div><label class="audio-row" for="audioToggle"><span><strong>Share audio</strong><small id="hostAudioStatus">Include audio when available</small></span><span class="switch"><input type="checkbox" id="audioToggle"><span class="switch-track"></span></span></label></div>
-              <div class="control-step"><div class="step-heading"><span>02</span><h3>START YOUR SESSION</h3></div><button class="button button-primary corner-button" id="startShare" type="button"><i class="button-corners" aria-hidden="true"><b></b><b></b></i><span>CHOOSE WHAT TO SHARE</span><span aria-hidden="true">↗</span></button><p class="hint">Your browser will ask you to choose a window, tab, or screen. Audio availability depends on your browser and selection.</p></div>
-              <div class="control-step share-details"><div class="step-heading"><span>03</span><h3>INVITE SOMEONE IN</h3></div><div class="code-row"><div><small>YOUR SHARE CODE</small><strong id="shareCode">— — — — — —</strong></div><button class="icon-button corner-button" id="copyCode" type="button" disabled aria-label="Copy share code" title="Copy share code"><i class="button-corners" aria-hidden="true"><b></b><b></b></i><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="11"></rect><path d="M16 8V5H5v11h3"></path></svg></button></div><div class="link-row"><span id="shareLink">Your link will appear here</span><button class="text-button corner-button" id="copyLink" type="button" disabled><i class="button-corners" aria-hidden="true"><b></b><b></b></i>COPY LINK ↗</button></div></div>
-              <div class="stream-actions"><button class="button button-outline corner-button" id="pauseShare" type="button" disabled><i class="button-corners" aria-hidden="true"><b></b><b></b></i>Ⅱ &nbsp; PAUSE STREAMING</button><button class="button button-outline corner-button" id="continueShare" type="button" disabled><i class="button-corners" aria-hidden="true"><b></b><b></b></i>▶ &nbsp; CONTINUE</button><button class="stop-button corner-button" id="stopShare" type="button" disabled><i class="button-corners" aria-hidden="true"><b></b><b></b></i>END SESSION ×</button></div>
-            </div>
-          </div>
-        </div>
-
-        <div id="watchPanel" class="panel" role="tabpanel" aria-labelledby="watchTab" hidden>
-          <div class="panel-heading"><div><span class="section-number">[ 02 / VIEWING ]</span><h2>Pull up<br>a window<span class="period">.</span></h2></div><p>Have a code or a link?<br>You're in the right place.</p></div>
-          <div class="host-layout">
-            <div class="preview-column"><div class="preview-label"><span>SHARED SCREEN</span><span><i class="status-dot"></i> <span id="viewerStatus" role="status">WAITING FOR A CODE</span></span></div><div class="video-frame"><video id="viewerVideo" hidden autoplay playsinline controls aria-label="Shared screen"></video><div class="empty-preview" id="viewerPlaceholder" aria-hidden="true"><div class="screen-icon"><span></span><i></i></div><strong>WAITING FOR A WINDOW</strong><small>The shared screen will appear here.</small></div><span class="frame-corner top-left"></span><span class="frame-corner top-right"></span><span class="frame-corner bottom-left"></span><span class="frame-corner bottom-right"></span><span class="preview-index">UNISHARE / 002</span></div><div class="preview-foot"><span>● &nbsp; VIEWING MODE</span><span>MADE FOR SHARING</span></div><button class="button button-outline corner-button viewer-play" id="viewerPlay" type="button" hidden><i class="button-corners" aria-hidden="true"><b></b><b></b></i>▶ &nbsp; PLAY / UNMUTE</button></div>
-            <div class="controls-column join-controls"><div class="control-step"><div class="step-heading"><span>01</span><h3>ENTER YOUR CODE</h3></div><form id="joinForm"><label class="input-label" for="joinCode">SHARE CODE</label><input id="joinCode" type="text" placeholder="ENTER CODE" autocomplete="off" spellcheck="false" required><button class="button button-primary corner-button" type="submit"><i class="button-corners" aria-hidden="true"><b></b><b></b></i><span>JOIN THE STREAM</span><span aria-hidden="true">↗</span></button></form><p class="hint">Ask the person sharing their screen for their code or link. Anyone with it can join while the session is live.</p></div><div class="join-note"><span>✳</span><p>A little distance doesn't have to get in the way.</p></div></div>
+      <section id="hostPanel" class="workspace-panel" role="tabpanel" aria-labelledby="hostTab" hidden>
+        <div class="workspace-head"><div><span class="eyebrow">01 / SHARE</span><h2>Share your screen<span>.</span></h2><p>Pick a window and invite someone in.</p></div><div class="status"><span class="status-dot"></span><span id="hostStatus" role="status">Ready to share</span></div></div>
+        <div class="workspace-grid">
+          <div class="preview-column"><div class="preview-label"><span>YOUR PREVIEW</span><span>WINDOW / TAB / SCREEN</span></div><div class="video-frame"><video id="hostVideo" hidden autoplay muted playsinline aria-label="Your screen share preview"></video><div class="empty-preview" id="hostPlaceholder"><span class="preview-symbol" aria-hidden="true">↗</span><strong>Your screen appears here.</strong><small>Choose a window, tab, or screen to start.</small></div></div><p class="preview-caption">You control what you share.</p></div>
+          <div class="controls-column">
+            <label class="audio-row" for="audioToggle"><span><strong>Share audio</strong><small id="hostAudioStatus">Include audio when available</small></span><span class="switch"><input id="audioToggle" type="checkbox"><span class="switch-track"></span></span></label>
+            <button class="button primary corner-button" id="startShare" type="button"><span>Choose what to share</span><span aria-hidden="true">↗</span></button>
+            <p class="hint">Choose a window in your browser’s picker. Audio availability depends on your browser and selection.</p>
+            <div class="invite"><div class="label">YOUR SHARE CODE</div><div class="code-row"><strong id="shareCode">— — — —</strong><button class="small-button corner-button" id="copyCode" type="button" disabled>Copy</button></div><div class="link-row"><span id="shareLink">Your link will appear here</span><button class="link-button" id="copyLink" type="button" disabled>Copy link ↗</button></div></div>
+            <div class="stream-actions"><button class="button secondary corner-button" id="pauseShare" type="button" disabled>Ⅱ &nbsp; Pause streaming</button><button class="button secondary corner-button" id="continueShare" type="button" disabled>▶ &nbsp; Continue</button><button class="link-button end-button" id="stopShare" type="button" disabled>End session ×</button></div>
           </div>
         </div>
       </section>
-      <div class="bottom-note"><span>BUILT FOR THE THINGS WORTH SHARING.</span><span>GOOD TO SEE YOU HERE. &nbsp; ↗</span></div>
+
+      <section id="watchPanel" class="workspace-panel" role="tabpanel" aria-labelledby="watchTab" hidden>
+        <div class="workspace-head"><div><span class="eyebrow">02 / JOIN</span><h2>Come on in<span>.</span></h2><p>Enter a code or open an invite link.</p></div><div class="status"><span class="status-dot"></span><span id="viewerStatus" role="status">Waiting for a code</span></div></div>
+        <div class="workspace-grid"><div class="preview-column"><div class="preview-label"><span>SHARED SCREEN</span><span>VIEWING MODE</span></div><div class="video-frame"><video id="viewerVideo" hidden autoplay playsinline controls aria-label="Shared screen"></video><div class="empty-preview" id="viewerPlaceholder"><span class="preview-symbol" aria-hidden="true">↗</span><strong>Waiting for a window.</strong><small>The shared screen will appear here.</small></div></div><button class="button secondary viewer-play corner-button" id="viewerPlay" type="button" hidden>▶ &nbsp; Play / unmute</button></div><div class="controls-column join-controls"><form id="joinForm"><label class="label" for="joinCode">SHARE CODE OR LINK</label><input id="joinCode" type="text" placeholder="Paste your code or link" autocomplete="off" spellcheck="false" required><button class="button primary corner-button" type="submit"><span>Join the stream</span><span aria-hidden="true">↗</span></button></form><p class="hint">Anyone with the code or link can join while the session is live.</p></div></div>
+      </section>
     </main>
-    <footer><span>© UNISHARE <span class="footer-muted">/ SHARE THE VIEW.</span></span><span>NO NOISE. JUST THE GOOD STUFF. &nbsp; ✳</span></footer>
   </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 </body>
 </html>
-
-
-
