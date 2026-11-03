@@ -139,6 +139,22 @@
     return (explanations[type] || 'Could not connect to the sharing service. Please try again.') + (type ? ` (${type})` : '');
   }
 
+  function viewerErrorMessage(error) {
+    const type = error && error.type;
+    const explanations = {
+      'browser-incompatible': 'WebRTC is unavailable or blocked in this browser. Try Chrome or Edge, or check Firefox privacy extensions.',
+      'peer-unavailable': 'No active share was found for this code. Keep the host page open and copy a fresh code.',
+      'network': 'Cannot reach the sharing service. Check your internet connection or try another network.',
+      'server-error': 'The sharing service is unavailable. Please try again later.',
+      'socket-error': 'The connection to the sharing service was blocked. Check your network or privacy extensions.',
+      'socket-closed': 'The sharing service closed the connection. Please try again.',
+      'unavailable-id': 'Could not create a viewer connection. Please try again.',
+      'webrtc': 'The browsers could not establish a direct connection. Try another network or check privacy extensions.',
+      'negotiation-failed': 'The browsers could not establish a direct connection. Try another network or check privacy extensions.'
+    };
+    return (explanations[type] || 'Could not connect to the stream. Try again and check that the host is still sharing.') + (type ? ` (${type})` : '');
+  }
+
   function connectHost(attempt = 1) {
     if (!hostStream) return;
     const code = generateCode();
@@ -273,28 +289,32 @@
     setViewerStatus('Connecting…', 'connecting');
     const submit = ui.joinForm.querySelector('button[type="submit"]');
     if (submit) submit.disabled = true;
-    const peer = new Peer();
+    // A local random viewer ID avoids a separate broker ID lookup before connecting.
+    const peer = new Peer(`unishare-viewer-${generateCode().replace(/-/g, '').toLowerCase()}`);
     viewerPeer = peer;
     joinTimer = setTimeout(() => {
-      if (viewerPeer === peer && joining) resetViewer('Could not connect. Check the code and try again.', 'error');
-    }, 25000);
+      if (viewerPeer === peer && joining) resetViewer('Connection timed out. Check the host is still sharing, or try another network.', 'error');
+    }, 45000);
     peer.on('open', () => {
       if (viewerPeer !== peer) return;
       const conn = peer.connect(peerId(normalized), { reliable: true });
       viewerConnection = conn;
+      conn.on('open', () => {
+        if (viewerPeer === peer && joining) setViewerStatus('Connected to host. Opening stream…', 'connecting');
+      });
       conn.on('data', (data) => {
         if (viewerPeer !== peer || !data) return;
         if (data.type === 'ended') resetViewer('The host ended the stream.', 'idle');
         if (data.type === 'state') {
           remotePaused = Boolean(data.paused);
-          setViewerStatus(remotePaused ? 'Stream paused by host' : 'Connected', remotePaused ? 'paused' : 'live');
+          setViewerStatus(remotePaused ? 'Stream paused by host' : (joining ? 'Connected to host. Opening stream…' : 'Connected'), remotePaused ? 'paused' : (joining ? 'connecting' : 'live'));
         }
       });
       conn.on('close', () => {
-        if (viewerPeer === peer) resetViewer('The host disconnected.', 'idle');
+        if (viewerPeer === peer) resetViewer(joining ? 'Connection closed before the stream arrived. Try again or use another network.' : 'The host disconnected.', joining ? 'error' : 'idle');
       });
-      conn.on('error', () => {
-        if (viewerPeer === peer) resetViewer('Connection failed. Check the code and try again.', 'error');
+      conn.on('error', (error) => {
+        if (viewerPeer === peer) resetViewer(viewerErrorMessage(error), 'error');
       });
     });
     peer.on('call', (call) => {
@@ -315,13 +335,16 @@
         setViewerStatus(remotePaused ? 'Stream paused by host' : 'Connected', remotePaused ? 'paused' : 'live');
         if (submit) submit.disabled = false;
       });
-      call.on('error', () => {
-        if (viewerPeer === peer) resetViewer('The stream could not be opened.', 'error');
+      call.on('error', (error) => {
+        if (viewerPeer === peer) resetViewer(viewerErrorMessage(error), 'error');
       });
       call.answer();
     });
-    peer.on('error', () => {
-      if (viewerPeer === peer) resetViewer('Connection failed. Check the code and try again.', 'error');
+    peer.on('error', (error) => {
+      if (viewerPeer === peer) {
+        console.error('Viewer connection error:', error.type, error.message);
+        resetViewer(viewerErrorMessage(error), 'error');
+      }
     });
     peer.on('disconnected', () => {
       if (viewerPeer === peer) resetViewer('Connection to the sharing service was lost.', 'error');
