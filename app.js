@@ -21,6 +21,8 @@
   let toastTimer = null;
   let joining = false;
   let remotePaused = false;
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let selectedTab = 'home';
 
   function message(text) {
     ui.toast.textContent = text;
@@ -30,6 +32,8 @@
   }
 
   function selectTab(name) {
+    if (selectedTab === name) return;
+    selectedTab = name;
     const hosting = name === 'host';
     const watching = name === 'watch';
     const home = name === 'home';
@@ -39,9 +43,17 @@
     ui.homeTab.setAttribute('aria-selected', String(home));
     ui.hostTab.setAttribute('aria-selected', String(hosting));
     ui.watchTab.setAttribute('aria-selected', String(watching));
+    const panels = [ui.homePanel, ui.hostPanel, ui.watchPanel];
+    panels.forEach((panel) => panel.classList.remove('is-entering', 'is-leaving'));
     ui.homePanel.hidden = !home;
     ui.hostPanel.hidden = !hosting;
     ui.watchPanel.hidden = !watching;
+    const activePanel = home ? ui.homePanel : (hosting ? ui.hostPanel : ui.watchPanel);
+    // Start a fresh entrance even if the visitor switches back quickly.
+    if (!reducedMotion.matches) {
+      void activePanel.offsetWidth;
+      activePanel.classList.add('is-entering');
+    }
   }
 
   function setHostState(state) {
@@ -347,9 +359,9 @@
     ui.viewerVideo.muted = false;
     ui.viewerVideo.play().catch(() => message('Your browser could not play this stream.'));
   });
+  if (!reducedMotion.matches) ui.homePanel.classList.add('is-entering');
   const incoming = new URLSearchParams(window.location.search).get('join');
   if (incoming) { ui.joinCode.value = incoming; selectTab('watch'); }
-  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   window.addEventListener('pointermove', (event) => {
     if (reducedMotion.matches || event.pointerType === 'touch') return;
     const x = (event.clientX / window.innerWidth - 0.5) * 30;
